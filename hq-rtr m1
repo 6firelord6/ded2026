@@ -7,6 +7,11 @@ ip domain-name au-team.irpo
 username net_admin password P@ssw0rd
 username net_admin role admin
 
+# Удаляем старые интерфейсы чтобы не путаться
+no int vl100
+no int vl200
+no int vl999
+
 # Удаляем старые service-instance если были
 port ge1
  no service-instance v1110
