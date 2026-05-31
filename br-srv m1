@@ -1,0 +1,32 @@
+#BASE
+hostnamectl set-hostname br-srv.au-team.irpo
+exec bash
+mcedit /etc/sysconfig/network :
+# Пишем:
+hostname=br-srv.au-team.irpo
+
+#NET
+cd /etc/net/ifaces/ens3
+echo "10.20.20.2/28" > ipv4address
+echo "default via 10.20.20.1" > ipv4route
+echo "nameserver 77.88.8.8" > resolv.conf
+systemctl restart network
+
+#SSH (порт 2011, пользователь sshuser)
+usermod -u 2011 sshuser
+passwd sshuser   
+# P@ssw0rd
+
+
+usermod -aG wheel sshuser
+mcedit /etc/openssh/sshd_config
+# Меняем:
+Port 2011
+AllowUsers sshuser
+MaxAuthTries 2
+Banner /etc/openssh/banner
+echo "Authorized access only" > /etc/openssh/banner
+echo "sshuser ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+#NTP
+timedatectl set-timezone Europe/Moscow
