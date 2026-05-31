@@ -1,0 +1,15 @@
+hostnamectl set-hostname isp
+exec bash
+mcedit /etc/sysconfig/network
+‘isp’
+mcedit /etc/net/ifaces/ens4/ipv4address
+’172.16.10.1/28’
+mcedit /etc/net/ifaces/ens5/ipv4address
+‘172.16.20.1/28’
+systemctl restart network
+iptables -t nat -A POSTROUTING -s 172.16.10.0/28 -o ens3 -j MASQURADE
+iptables -t nat -A POSTROUTING -s 172.16.20.0/28 -o ens3 -j MASQURADE
+iptables -I FORWARD -s 172.16.10.0/28 -d 172.16.20.0/28 -j ACCEPT
+iptables -I FORWARD -s 172.16.20.0/28 -d 172.16.10.0/28 -j ACCEPT
+iptables-save > /etc/sysconfig/iptables
+systemctl enable –-now iptables
