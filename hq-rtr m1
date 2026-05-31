@@ -1,0 +1,110 @@
+enable
+configure terminal
+
+hostname hq-rtr
+ip domain-name au-team.irpo
+
+username net_admin password P@ssw0rd
+username net_admin role admin
+
+# Удаляем старые service-instance если были
+port ge1
+ no service-instance v1110
+ no service-instance v1210
+ no service-instance v1810
+exit
+
+# Настройка VLAN интерфейсов (inside)
+interface vl111
+ ip address 10.10.111.1/27
+ ip nat inside
+exit
+
+interface vl211
+ ip address 10.10.211.1/28
+ ip nat inside
+exit
+
+interface vl811
+ ip address 10.10.81.1/29
+ ip nat inside
+exit
+
+# Настройка WAN интерфейса (outside)
+interface isp
+ ip address 172.16.10.2/28
+ ip nat outside
+exit
+
+# Настройка trunk-порта с service-instance
+port ge1
+ service-instance v111
+  encapsulation dot1q 111 exact
+  rewrite pop 1
+  connect ip interface vl111
+ exit
+ service-instance v211
+  encapsulation dot1q 211 exact
+  rewrite pop 1
+  connect ip interface vl211
+ exit
+ service-instance v811
+  encapsulation dot1q 811 exact
+  rewrite pop 1
+  connect ip interface vl811
+ exit
+exit
+
+# Маршрут по умолчанию
+ip route 0.0.0.0/0 172.16.10.1
+
+# GRE-туннель до BR-RTR
+interface tunnel.0
+ ip address 10.10.10.1/30
+ ip tunnel 172.16.10.2 172.16.20.2 mode gre
+exit
+
+# OSPF
+router ospf 1
+ router-id 10.10.10.1
+ passive-interface default
+ no passive-interface tunnel.0
+ network 10.10.111.0/27 area 0
+ network 10.10.211.0/28 area 0
+ network 10.10.81.0/29 area 0
+ network 10.10.10.0/30 area 0
+exit
+
+# Аутентификация OSPF на туннеле
+interface tunnel.0
+ ip ospf authentication message-digest
+ ip ospf message-digest-key 1 md5 P@ssw0rd
+exit
+
+# NAT
+ip nat pool VLAN111 10.10.111.1-10.10.111.30
+ip nat pool VLAN211 10.10.211.1-10.10.211.14
+ip nat pool VLAN811 10.10.81.1-10.10.81.6
+ip nat source dynamic inside-to-outside pool VLAN111 overload interface isp
+ip nat source dynamic inside-to-outside pool VLAN211 overload interface isp
+ip nat source dynamic inside-to-outside pool VLAN811 overload interface isp
+
+# DHCP для VLAN211
+no ip pool VLAN211 1
+ip pool VLAN211 1
+ range 10.10.211.2-10.10.211.14
+exit
+
+no dhcp-server 1
+dhcp-server 1
+ pool VLAN211 1
+ gateway 10.10.211.1
+ dns 10.10.111.2
+ domain-name au-team.irpo
+ mask 255.255.255.240
+exit
+
+# NTP
+ntp timezone utc+3
+
+write memory
