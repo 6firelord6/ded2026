@@ -1,0 +1,95 @@
+#BASE
+hostnamectl set-hostname hq-srv.au-team.irpo
+exec bash
+mcedit /etc/sysconfig/network :
+# Пишем:
+hostname=hq-srv.au-team.irpo
+
+#NET
+cd /etc/net/ifaces/ens3
+echo "10.10.111.2/27" > ipv4address
+echo "default via 10.10.111.1" > ipv4route
+echo "nameserver 77.88.8.8" > resolv.conf
+systemctl restart network
+
+#SSH (порт 2011, пользователь sshuser c UID 2011)
+usermod -u 2011 sshuser
+passwd sshuser  
+# пароль P@ssw0rd
+
+usermod -aG wheel sshuser
+echo "Authorized access only" > /etc/openssh/banner
+mcedit /etc/openssh/sshd_config
+# Меняем:
+Port 2011
+AllowUsers sshuser
+MaxAuthTries 2
+Banner /etc/openssh/banner
+echo "sshuser ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+#NTP
+timedatectl set-timezone Europe/Moscow
+
+#DNS (BIND)
+mcedit /var/lib/bind/etc/options.conf
+# Меняем:
+listen-on { 127.0.0.1; 10.10.111.2; };
+forwarders { 77.88.8.8; };
+allow-query { any; };  !!!НЕ ЗАБУДЬ РАСКОММЕНТИТЬ!!!
+
+mcedit /var/lib/bind/etc/rfc1912.conf
+# Добавляем зоны для 1 варианта:
+zone "au-team.irpo" {
+    type master;
+    file "au-team.irpo";
+};
+zone "111.10.10.in-addr.arpa" {
+    type master;
+    file "111.10.10.in-addr.arpa";
+};
+zone "211.10.10.in-addr.arpa" {
+    type master;
+    file "211.10.10.in-addr.arpa";
+};
+
+# Копируем файлы зон
+cp /var/lib/bind/etc/zone/empty /var/lib/bind/etc/zone/au-team.irpo
+cp /var/lib/bind/etc/zone/empty /var/lib/bind/etc/zone/111.10.10.in-addr.arpa
+cp /var/lib/bind/etc/zone/empty /var/lib/bind/etc/zone/211.10.10.in-addr.arpa
+
+# Редактируем прямую зону
+mcedit /var/lib/bind/etc/zone/au-team.irpo
+# Пишем:
+$TTL 1D
+@       IN SOA  hq-srv.au-team.irpo. root.au-team.irpo. (2026060101 12H 1H 1W 1H)
+@       IN NS   hq-srv.au-team.irpo.
+hq-rtr  IN A    10.10.111.1
+hq-srv  IN A    10.10.111.2
+hq-cli  IN A    10.10.211.2
+br-rtr  IN A    10.20.20.1
+br-srv  IN A    10.20.20.2
+
+# Редактируем обратную зону для 111.10.10.in-addr.arpa
+mcedit /var/lib/bind/etc/zone/111.10.10.in-addr.arpa
+# Пишем:
+$TTL 1D
+@       IN SOA  hq-srv.au-team.irpo. root.au-team.irpo. (2026060101 12H 1H 1W 1H)
+@       IN NS   hq-srv.au-team.irpo.
+1       IN PTR  hq-rtr.au-team.irpo.
+2       IN PTR  hq-srv.au-team.irpo.
+
+# Редактируем обратную зону для 211.10.10.in-addr.arpa
+mcedit /var/lib/bind/etc/zone/211.10.10.in-addr.arpa
+# Пишем:
+$TTL 1D
+@       IN SOA  hq-srv.au-team.irpo. root.au-team.irpo. (2026060101 12H 1H 1W 1H)
+@       IN NS   hq-srv.au-team.irpo.
+2       IN PTR  hq-cli.au-team.irpo.
+
+# Завершение настройки DNS
+chown -R root:named /etc/bind/zone/*
+rndc-confgen > /etc/bind/rndc.key
+sed -i '6,$d' /etc/bind/rndc.key
+named-checkconf -z
+systemctl enable --now bind
+systemctl status bind
