@@ -7,9 +7,15 @@ mcedit /etc/net/ifaces/ens4/ipv4address
 mcedit /etc/net/ifaces/ens5/ipv4address
 ‘172.16.20.1/28’
 systemctl restart network
-iptables -t nat -A POSTROUTING -s 172.16.10.0/28 -o ens3 -j MASQURADE
-iptables -t nat -A POSTROUTING -s 172.16.20.0/28 -o ens3 -j MASQURADE
+iptables -t nat -A POSTROUTING -s 172.16.10.0/28 -o ens3 -j MASQUERADE
+iptables -t nat -A POSTROUTING -s 172.16.20.0/28 -o ens3 -j MASQUERADE
 iptables -I FORWARD -s 172.16.10.0/28 -d 172.16.20.0/28 -j ACCEPT
 iptables -I FORWARD -s 172.16.20.0/28 -d 172.16.10.0/28 -j ACCEPT
 iptables-save > /etc/sysconfig/iptables
 systemctl enable –-now iptables
+
+ip a | grep 172.16
+iptables -t nat -L -n -v | grep MASQUERADE
+iptables -L FORWARD -n -v | grep ACCEPT
+ping 172.16.10.2   # должен пинговать HQ-RTR
+ping 172.16.20.2   # должен пинговать BR-RTR
