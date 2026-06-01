@@ -44,17 +44,17 @@ exit
 # Настройка trunk-порта с service-instance
 port ge1
  service-instance v111
-  encapsulation dot1q 111 exact
+  encapsulation dot1q 100 exact
   rewrite pop 1
   connect ip interface vl111
  exit
  service-instance v211
-  encapsulation dot1q 211 exact
+  encapsulation dot1q 200 exact
   rewrite pop 1
   connect ip interface vl211
  exit
- service-instance v811
-  encapsulation dot1q 811 exact
+ service-instance vl811
+  encapsulation dot1q 999 exact
   rewrite pop 1
   connect ip interface vl811
  exit
@@ -97,14 +97,14 @@ ip nat source dynamic inside-to-outside pool VLAN811 overload interface isp
 # DHCP для VLAN211  !!! НЕ НАДО АДРЕСА ПРЕЖНИЕ !!!!
 no ip pool VLAN211 1
 ip pool VLAN211 1
- range 10.10.211.2-10.10.211.14
+ range 10.10.200.2-10.10.200.14
 exit
 
 no dhcp-server 1
 dhcp-server 1
  pool VLAN211 1
- gateway 10.10.211.1
- dns 10.10.111.2
+ gateway 10.10.200.1
+ dns 10.10.100.2
  domain-name au-team.irpo
  mask 255.255.255.240
 exit
