@@ -163,3 +163,6 @@ http://docker.au-team.irpo
 
 В терминале
 apt-get install -y yandex-browser-stable
+
+
+https://lokis.ddns.net/
