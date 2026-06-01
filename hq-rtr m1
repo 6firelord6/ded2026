@@ -14,24 +14,24 @@ no int vl999
 
 # Удаляем старые service-instance если были
 port ge1
- no service-instance v1110
- no service-instance v1210
- no service-instance v1810
+ no service-instance vl100
+ no service-instance vl200
+ no service-instance vl999
 exit
 
 # Настройка VLAN интерфейсов (inside)
 interface vl111
- ip address 10.10.111.1/27
+ ip address 10.10.100.1/27
  ip nat inside
 exit
 
 interface vl211
- ip address 10.10.211.1/28
+ ip address 10.10.200.1/28
  ip nat inside
 exit
 
 interface vl811
- ip address 10.10.81.1/29
+ ip address 10.10.30.1/29
  ip nat inside
 exit
 
@@ -74,9 +74,9 @@ router ospf 1
  router-id 10.10.10.1
  passive-interface default
  no passive-interface tunnel.0
- network 10.10.111.0/27 area 0
- network 10.10.211.0/28 area 0
- network 10.10.81.0/29 area 0
+ network 10.10.100.0/27 area 0
+ network 10.10.200.0/28 area 0
+ network 10.10.30.0/29 area 0
  network 10.10.10.0/30 area 0
 exit
 
@@ -87,14 +87,14 @@ interface tunnel.0
 exit
 
 # NAT
-ip nat pool VLAN111 10.10.111.1-10.10.111.30
-ip nat pool VLAN211 10.10.211.1-10.10.211.14
-ip nat pool VLAN811 10.10.81.1-10.10.81.6
+ip nat pool VLAN111 10.10.100.1-10.10.100.30
+ip nat pool VLAN211 10.10.200.1-10.10.200.14
+ip nat pool VLAN811 10.10.30.1-10.10.30.6
 ip nat source dynamic inside-to-outside pool VLAN111 overload interface isp
 ip nat source dynamic inside-to-outside pool VLAN211 overload interface isp
 ip nat source dynamic inside-to-outside pool VLAN811 overload interface isp
 
-# DHCP для VLAN211
+# DHCP для VLAN211  !!! НЕ НАДО АДРЕСА ПРЕЖНИЕ !!!!
 no ip pool VLAN211 1
 ip pool VLAN211 1
  range 10.10.211.2-10.10.211.14
