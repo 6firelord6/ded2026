@@ -1,0 +1,31 @@
+
+
+!!!! ЛУЧШЕ ЗАБЕЙ ХУЙ !!!!
+
+
+
+
+#BASE
+hostnamectl set-hostname hq-sw.au-team.irpo
+exec bash
+mcedit /etc/sysconfig/network
+# Пишем:
+hostname=hq-sw.au-team.irpo
+
+#OVS
+systemctl enable --now openvswitch
+
+ovs-vsctl del-br hq-sw
+ovs-vsctl show
+
+ovs-vsctl add-br SW
+ovs-vsctl add-port SW ens3 trunk=111,211,811
+ovs-vsct1 add-port SW ens4 tag=111
+ovs-vsctl add-port SW ens5 tag=211
+
+ovs-vsctl add-port SW mgmt tag=811 -- set Interface mgmt type=internal
+ip link set mgmt up
+ip addr add 10.10.81.2/29 dev mgmt
+
+ovs-vsctl show
+
